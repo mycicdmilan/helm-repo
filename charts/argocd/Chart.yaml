@@ -1,0 +1,34 @@
+# =============================================================================
+# ArgoCD Bootstrap Chart (Wrapper around upstream argo-cd)
+# =============================================================================
+# This is NOT a chart you write from scratch.
+# It declares the official ArgoCD Helm chart as a DEPENDENCY.
+# Helm downloads the upstream chart when you run: helm dependency update
+#
+# Source: https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd
+# ArtifactHub: https://artifacthub.io/packages/helm/argo/argo-cd
+# =============================================================================
+apiVersion: v2
+name: argocd-bootstrap
+description: >
+  ArgoCD bootstrap wrapper chart for the GKE platform.
+  Wraps the official argo-cd Helm chart with platform-specific defaults.
+type: application
+version: 1.0.0
+appVersion: "2.13.3"
+
+# ---------------------------------------------------------------------------
+# HOW THIS WORKS:
+#   1. Helm reads this dependency block
+#   2. "helm dependency update" downloads argo-cd-7.7.11.tgz into charts/
+#   3. Creates Chart.lock (commit this file, .gitignore the .tgz)
+#   4. Your values.yaml overrides go under the key "argo-cd:" to match
+#      the dependency name below
+# ---------------------------------------------------------------------------
+dependencies:
+  - name: argo-cd
+    version: "7.7.11"
+    repository: https://argoproj.github.io/argo-helm
+    # To find available versions:
+    #   helm repo add argo https://argoproj.github.io/argo-helm
+    #   helm search repo argo/argo-cd --versions

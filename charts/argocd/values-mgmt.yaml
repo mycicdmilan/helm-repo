@@ -1,0 +1,40 @@
+# =============================================================================
+# ArgoCD — Management Cluster Overrides
+# =============================================================================
+# Usage: helm install argocd charts/argocd -f charts/argocd/values-mgmt.yaml
+#
+# Management cluster ArgoCD watches the cluster-config repo and creates
+# Workload Clusters for its specific vertical via ApplicationSet + CAPI/CAPG.
+# =============================================================================
+
+argo-cd:
+  # -- ArgoCD Server
+  server:
+    # Expose ArgoCD UI via LoadBalancer (for POC access)
+    service:
+      type: LoadBalancer
+    replicas: 1
+
+  # -- Repository connections
+  configs:
+    repositories:
+      # Cluster-config repo: contains workload cluster definitions per vertical/env
+      cluster-config:
+        url: https://github.com/mycicdmilan/cluster-config.git
+        type: git
+
+      # Helm-repo: same bootstrap charts, used for workload cluster addons
+      helm-repo:
+        url: https://github.com/mycicdmilan/helm-repo.git
+        type: git
+
+    cm:
+      admin.enabled: "true"
+
+  # -- Controller
+  controller:
+    replicas: 1
+
+  # -- Repo Server
+  repoServer:
+    replicas: 1

@@ -1,0 +1,35 @@
+# =============================================================================
+# cert-manager Bootstrap Chart (Wrapper around upstream cert-manager)
+# =============================================================================
+# Source: https://github.com/cert-manager/cert-manager
+# ArtifactHub: https://artifacthub.io/packages/helm/cert-manager/cert-manager
+# Helm repo: https://charts.jetstack.io
+#
+# WHY cert-manager? It is a REQUIRED dependency for:
+#   - CAPI Operator (uses cert-manager for webhook TLS certificates)
+#   - Venafi Enhanced Issuer (extends cert-manager with enterprise issuers)
+#   - Workload cluster ingress TLS
+#
+# INSTALL ORDER: cert-manager MUST be installed BEFORE capi-operator.
+# =============================================================================
+apiVersion: v2
+name: cert-manager-bootstrap
+description: >
+  cert-manager wrapper chart for the GKE platform.
+  Required by CAPI Operator and Venafi for TLS certificate automation.
+type: application
+version: 1.0.0
+appVersion: "1.17.2"
+
+dependencies:
+  - name: cert-manager
+    version: "v1.17.2"
+    repository: https://charts.jetstack.io
+    # To find available versions:
+    #   helm repo add jetstack https://charts.jetstack.io
+    #   helm search repo jetstack/cert-manager --versions
+    #
+    # NOTE: If your org uses Venafi's private registry instead of open-source:
+    #   repository: oci://private-registry.venafi.cloud/charts
+    #   version: "v1.18.1"
+    # This requires authentication — see charts/venafi/README for details.

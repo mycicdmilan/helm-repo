@@ -1,0 +1,29 @@
+# =============================================================================
+# CAPG Provider Chart (Custom Templates — NOT a wrapper)
+# =============================================================================
+# This chart deploys the GCP Infrastructure Provider for Cluster API.
+# Unlike the wrapper charts, this one contains YOUR OWN templates that
+# create Kubernetes resources (InfrastructureProvider CR, credentials Secret).
+#
+# WHY a separate chart instead of using the CAPI Operator's inline mode?
+#   - We build CAPG from our own fork → need to specify a custom image
+#   - We use Workload Identity → credentials are handled differently
+#   - Easier to manage the provider lifecycle independently
+#   - Better GitOps: the provider spec is a YAML file in this chart
+#
+# The templates/ directory contains:
+#   - namespace.yaml          → creates capg-system namespace
+#   - service-account.yaml    → K8s SA with WIF annotation
+#   - infrastructure-provider.yaml → InfrastructureProvider CR for CAPI Operator
+#   - credentials-secret.yaml → GCP credentials secret (empty for WIF)
+# =============================================================================
+apiVersion: v2
+name: capg-provider
+description: >
+  GCP Infrastructure Provider (CAPG) for Cluster API.
+  Deploys InfrastructureProvider CR with custom-built controller image.
+type: application
+version: 1.0.0
+appVersion: "1.8.0"
+
+# No dependencies — this chart has its own templates

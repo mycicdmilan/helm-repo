@@ -1,0 +1,90 @@
+# =============================================================================
+# ArgoCD — Default Values (shared between Big Bang and Management clusters)
+# =============================================================================
+# These values are passed to the upstream argo-cd chart.
+# All keys MUST be nested under "argo-cd:" because that's the dependency name
+# in Chart.yaml. Helm uses the dependency name as the values prefix.
+#
+# Full upstream values reference:
+#   https://github.com/argoproj/argo-helm/blob/main/charts/argo-cd/values.yaml
+# =============================================================================
+
+argo-cd:
+  # -- Global settings
+  global:
+    # Use current namespace for ArgoCD components
+    logging:
+      level: info
+
+  # -- ArgoCD Server
+  server:
+    # For POC: expose via LoadBalancer. For prod: use Ingress + cert-manager
+    service:
+      type: LoadBalancer
+
+    # Extra args for the server
+    extraArgs:
+      - --insecure   # Disable TLS on server (terminate at LB/Ingress). Remove for prod.
+
+  # -- ArgoCD Controller
+  controller:
+    # Resource limits for Autopilot (GKE Autopilot enforces resource requests)
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
+
+  # -- Repo Server
+  repoServer:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: "500m"
+        memory: 512Mi
+
+  # -- ApplicationSet Controller (REQUIRED for our Git Generator pattern)
+  applicationSet:
+    enabled: true
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+  # -- Redis
+  redis:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 128Mi
+
+  # -- Configs
+  configs:
+    # Known hosts for SSH (add your GitHub org's SSH key here for private repos)
+    ssh:
+      extraHosts: ""
+
+    # ConfigMap settings
+    cm:
+      # Allow ArgoCD to manage resources in any namespace
+      application.instanceLabelKey: argocd.argoproj.io/instance
+      # Enable ApplicationSet
+      applicationsetcontroller.enable: "true"
+      # Enable status badge
+      statusbadge.enabled: "true"
+
+    # RBAC - default policy
+    rbac:
+      policy.default: role:readonly
+      policy.csv: |
+        g, platform-admins, role:admin

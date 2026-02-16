@@ -1,0 +1,40 @@
+# =============================================================================
+# CAPG Provider — Values (Upstream Image, No Custom Build)
+# =============================================================================
+
+# -- CAPG version tag (must match an official release)
+# See: https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases
+version: v1.8.0
+
+# -- Namespace for CAPG controller
+namespace: capg-system
+
+# -- Image override (LEAVE EMPTY to use official upstream image)
+# When empty, CAPI Operator pulls from:
+#   registry.k8s.io/cluster-api-gcp/cluster-api-gcp-controller:v1.8.0
+# Only set this if you need a custom-built image later:
+image:
+  override: false
+  # repository: us-central1-docker.pkg.dev/<PROJECT>/platform-images/capg-controller
+  # tag: latest
+
+# -- GCP credentials
+credentials:
+  # Secret name referenced by the InfrastructureProvider CR
+  secretName: gcp-credentials
+
+  # TRUE  = Workload Identity (recommended for GKE, no JSON key file)
+  # FALSE = JSON key file stored in the secret
+  useWorkloadIdentity: true
+
+# -- Workload Identity settings (only when useWorkloadIdentity=true)
+workloadIdentity:
+  # GCP SA that CAPG controller will use via WIF
+  gcpServiceAccount: capg-controller-sa@platform-dev-prj1.iam.gserviceaccount.com
+
+# -- Feature gates
+featureGates:
+  GKEManagedCluster: true
+
+# -- K8s ServiceAccount name
+serviceAccountName: capg-controller-manager

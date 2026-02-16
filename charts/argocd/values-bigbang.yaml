@@ -1,0 +1,48 @@
+# =============================================================================
+# ArgoCD — Big Bang Cluster Overrides
+# =============================================================================
+# Usage: helm install argocd charts/argocd -f charts/argocd/values-bigbang.yaml
+#
+# The Big Bang cluster ArgoCD watches the platform-config repo and creates
+# Management Clusters via ApplicationSet + CAPI/CAPG.
+# =============================================================================
+
+argo-cd:
+  # -- ArgoCD Server
+  server:
+    # Expose ArgoCD UI via LoadBalancer (for POC access)
+    service:
+      type: LoadBalancer
+    # Big Bang does NOT need high availability for POC
+    replicas: 1
+
+  # -- Configs
+  configs:
+    # -- Repository connections
+    # These repos are registered in ArgoCD so Applications/ApplicationSets can
+    # reference them by URL.
+    repositories:
+      # Platform-config repo: contains management-cluster.yaml per vertical/env
+      platform-config:
+        url: https://github.com/mycicdmilan/platform-config.git
+        type: git
+        # For private repos, add credentials:
+        # password: <GitHub PAT or deploy token>
+        # username: <username>
+
+      # Helm-repo: contains bootstrap charts (this repo)
+      helm-repo:
+        url: https://github.com/mycicdmilan/helm-repo.git
+        type: git
+
+    cm:
+      # Admin enabled for initial setup (disable in production)
+      admin.enabled: "true"
+
+  # -- Controller
+  controller:
+    replicas: 1
+
+  # -- Repo Server
+  repoServer:
+    replicas: 1

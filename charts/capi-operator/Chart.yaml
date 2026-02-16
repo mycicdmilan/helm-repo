@@ -1,0 +1,34 @@
+# =============================================================================
+# CAPI Operator Bootstrap Chart (Wrapper around upstream cluster-api-operator)
+# =============================================================================
+# The Cluster API Operator manages the lifecycle of CAPI providers
+# (Core, Bootstrap, ControlPlane, Infrastructure) declaratively.
+#
+# Source: https://github.com/kubernetes-sigs/cluster-api-operator
+# Helm repo: https://kubernetes-sigs.github.io/cluster-api-operator
+#
+# PREREQUISITE: cert-manager must be installed BEFORE this chart.
+# The CAPI Operator uses cert-manager for its webhook TLS certificates.
+#
+# The operator chart has a "quickstart" mode that installs:
+#   - Core Cluster API provider (capi-system)
+#   - Kubeadm Bootstrap provider (capi-kubeadm-bootstrap-system)
+#   - Kubeadm ControlPlane provider (capi-kubeadm-control-plane-system)
+#   - Infrastructure provider (e.g., GCP) — configured in values.yaml
+# =============================================================================
+apiVersion: v2
+name: capi-operator-bootstrap
+description: >
+  Cluster API Operator wrapper chart. Installs the CAPI Operator which
+  declaratively manages Core, Bootstrap, ControlPlane, and Infrastructure providers.
+type: application
+version: 1.0.0
+appVersion: "0.19.0"
+
+dependencies:
+  - name: cluster-api-operator
+    version: "0.19.0"
+    repository: https://kubernetes-sigs.github.io/cluster-api-operator
+    # To find available versions:
+    #   helm repo add capi-operator https://kubernetes-sigs.github.io/cluster-api-operator
+    #   helm search repo capi-operator/cluster-api-operator --versions

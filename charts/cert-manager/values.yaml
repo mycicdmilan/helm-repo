@@ -1,0 +1,70 @@
+# =============================================================================
+# cert-manager — Values
+# =============================================================================
+# Full upstream values reference:
+#   https://github.com/cert-manager/cert-manager/blob/master/deploy/charts/cert-manager/values.yaml
+#
+# Key: all values are nested under "cert-manager:" because that's the
+# dependency name in Chart.yaml.
+# =============================================================================
+
+cert-manager:
+  # -- Install CRDs as part of the Helm release
+  # CRITICAL: must be true for first install. CAPI Operator depends on these CRDs.
+  crds:
+    enabled: true
+
+  # -- Namespace
+  # cert-manager is typically installed in its own namespace
+  namespace: cert-manager
+
+  # -- Resources (required for GKE Autopilot — must specify requests)
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+  webhook:
+    resources:
+      requests:
+        cpu: 25m
+        memory: 32Mi
+      limits:
+        cpu: 250m
+        memory: 128Mi
+
+  cainjector:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+  startupapicheck:
+    resources:
+      requests:
+        cpu: 25m
+        memory: 32Mi
+      limits:
+        cpu: 250m
+        memory: 128Mi
+
+  # -- Enable Prometheus metrics (optional for POC)
+  prometheus:
+    enabled: false
+
+  # -- Feature gates
+  featureGates: ""
+
+  # -- Global settings
+  global:
+    # If using Venafi's private registry for cert-manager images:
+    # imagePullSecrets:
+    #   - name: venafi-image-pull-secret
+    leaderElection:
+      namespace: cert-manager

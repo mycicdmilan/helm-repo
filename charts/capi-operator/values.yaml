@@ -1,0 +1,66 @@
+# =============================================================================
+# CAPI Operator — Values
+# =============================================================================
+# Full upstream values reference:
+#   https://github.com/kubernetes-sigs/cluster-api-operator/blob/main/hack/charts/cluster-api-operator/values.yaml
+#
+# Key: all values are nested under "cluster-api-operator:" because that's
+# the dependency name in Chart.yaml.
+#
+# The CAPI Operator chart supports a "quickstart" mode using --set flags
+# to install providers inline. However, for GitOps we prefer to manage
+# providers declaratively via separate CRs (see capg-provider chart).
+# =============================================================================
+
+cluster-api-operator:
+  # -- cert-manager: CAPI Operator depends on cert-manager for webhooks
+  # Set to false because we install cert-manager separately (charts/cert-manager)
+  cert-manager:
+    enabled: false
+
+  # -- Manager configuration
+  manager:
+    # Feature gates for the CAPI Operator itself
+    featureGates:
+      core:
+        ClusterResourceSet: true
+        MachinePool: true
+      # These feature gates are passed to the Core CAPI provider
+      # when the operator installs it
+
+  # -- Core provider version (installed automatically by the operator)
+  core:
+    cluster-api:
+      version: v1.9.4
+      # To use YOUR custom-built CAPI image instead of upstream:
+      # deployment:
+      #   containers:
+      #     - name: manager
+      #       imageUrl: us-central1-docker.pkg.dev/<PROJECT>/platform-images/cluster-api-controller:latest
+
+  # -- Bootstrap provider
+  bootstrap:
+    kubeadm:
+      version: v1.9.4
+
+  # -- ControlPlane provider
+  controlPlane:
+    kubeadm:
+      version: v1.9.4
+
+  # -- Infrastructure provider
+  # NOTE: We manage the GCP infrastructure provider separately via
+  # the capg-provider chart for better control over the custom image.
+  # If you want the operator to install it inline instead, uncomment:
+  # infrastructure:
+  #   gcp:
+  #     version: v1.8.0
+
+  # -- Resources (required for GKE Autopilot)
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

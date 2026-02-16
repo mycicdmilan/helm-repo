@@ -1,0 +1,25 @@
+# =============================================================================
+# ClusterResourceSets — Values
+# =============================================================================
+
+# -- Strategy for applying resources
+# "ApplyOnce" = apply once when cluster is first detected (default)
+# "Reconcile" = re-apply when ConfigMap/Secret content changes
+strategy: Reconcile
+
+# -- Management cluster CRS settings
+managementCluster:
+  enabled: true
+  # Label selector — must match labels on the CAPI Cluster CR
+  # Set these labels in your management-cluster.yaml (platform-config repo)
+  matchLabels:
+    cluster-type: management
+
+# -- Workload cluster CRS settings
+workloadCluster:
+  enabled: true
+  matchLabels:
+    cluster-type: workload
+
+# -- Namespace for CRS resources
+namespace: default

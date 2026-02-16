@@ -1,0 +1,33 @@
+{{/*
+  InfrastructureProvider CR — tells the CAPI Operator to install CAPG.
+  The CAPI Operator watches this resource and deploys the CAPG controller
+  using the specified version and custom image.
+*/}}
+apiVersion: operator.cluster.x-k8s.io/v1alpha2
+kind: InfrastructureProvider
+metadata:
+  name: gcp
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: helm-repo
+    app.kubernetes.io/component: capg
+spec:
+  version: {{ .Values.version }}
+
+  # -- Feature gates for the CAPG provider
+  manager:
+    featureGates:
+      {{- range $key, $val := .Values.featureGates }}
+      {{ $key }}: {{ $val }}
+      {{- end }}
+
+  # -- Custom deployment overrides
+  # This is where we inject our custom-built CAPG image
+  deployment:
+    containers:
+      - name: manager
+        imageUrl: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+
+  # -- Reference to the GCP credentials secret
+  configSecret:
+    name: {{ .Values.credentials.secretName }}

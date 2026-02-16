@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: management-clusters
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/<YOUR-ORG>/platform-config.git
+        revision: main
+        files:
+          - path: vertical/*/dev/management-cluster.yaml
+          - path: vertical/*/staging/management-cluster.yaml
+          - path: vertical/*/prod/management-cluster.yaml
+  template:
+    metadata:
+      name: '{{.vertical}}-{{.environment}}-mgmt'
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/mycicdmilann/platform-config.git
+        targetRevision: main
+        path: 'vertical/{{.vertical}}/{{.environment}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: default
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
