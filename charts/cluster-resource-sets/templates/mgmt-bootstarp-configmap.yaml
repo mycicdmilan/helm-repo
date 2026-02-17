@@ -1,0 +1,137 @@
+{{/*
+  Bootstrap ConfigMap for Management Clusters.
+  Contains a Kubernetes Job that:
+    1. Creates argocd namespace
+    2. Installs ArgoCD via Helm
+    3. Waits for ArgoCD CRDs
+    4. Creates App-of-Apps Applications (cert-manager, CAPI, CAPG, etc.)
+  
+  This approach avoids the 1MB ConfigMap size limit by using Helm to install
+  ArgoCD instead of embedding the full manifest.
+*/}}
+{{- if .Values.managementCluster.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mgmt-bootstrap
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: helm-repo
+    app.kubernetes.io/component: crs-bootstrap
+data:
+  bootstrap.yaml: |
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: argocd
+    ---
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: bootstrap-sa
+      namespace: argocd
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: bootstrap-admin
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: cluster-admin
+    subjects:
+      - kind: ServiceAccount
+        name: bootstrap-sa
+        namespace: argocd
+    ---
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: bootstrap-argocd
+      namespace: argocd
+    spec:
+      ttlSecondsAfterFinished: 600
+      template:
+        spec:
+          serviceAccountName: bootstrap-sa
+          containers:
+          - name: bootstrap
+            image: alpine/helm:3.14.0
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "=== Starting Management Cluster Bootstrap ==="
+
+              # Step 1: Install ArgoCD via Helm
+              echo "--- Installing ArgoCD ---"
+              helm repo add argo https://argoproj.github.io/argo-helm
+              helm repo update
+              helm install argocd argo/argo-cd \
+                --namespace argocd \
+                --version {{ .Values.managementCluster.argocd.helmChartVersion }} \
+                --set server.service.type={{ .Values.managementCluster.argocd.server.serviceType }} \
+                --set configs.cm."admin\.enabled"="true" \
+                --wait --timeout 5m
+              echo "--- ArgoCD installed successfully ---"
+
+              # Step 2: Wait for ArgoCD CRDs to be fully available
+              echo "--- Waiting for ArgoCD CRDs ---"
+              until kubectl get crd applications.argoproj.io >/dev/null 2>&1; do
+                echo "Waiting for Application CRD..."
+                sleep 5
+              done
+              sleep 10
+              echo "--- ArgoCD CRDs ready ---"
+
+              # Step 3: Register helm-repo in ArgoCD
+              echo "--- Registering helm-repo ---"
+              kubectl apply -f - <<'REPO'
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: helm-repo
+                namespace: argocd
+                labels:
+                  argocd.argoproj.io/secret-type: repository
+              stringData:
+                type: git
+                url: {{ .Values.managementCluster.helmRepoURL }}
+              REPO
+              echo "--- helm-repo registered ---"
+
+              # Step 4: Create App-of-Apps Applications
+              echo "--- Creating App-of-Apps Applications ---"
+              {{- range $name, $app := .Values.managementCluster.applications }}
+              {{- if $app.enabled }}
+              cat <<'APP' | kubectl apply -f -
+              apiVersion: argoproj.io/v1alpha1
+              kind: Application
+              metadata:
+                name: {{ $name }}
+                namespace: argocd
+              spec:
+                project: default
+                source:
+                  repoURL: {{ $.Values.managementCluster.helmRepoURL }}
+                  targetRevision: {{ $.Values.managementCluster.helmRepoBranch }}
+                  path: {{ $app.path }}
+                destination:
+                  server: https://kubernetes.default.svc
+                  namespace: {{ $app.namespace }}
+                syncPolicy:
+                  automated:
+                    prune: true
+                    selfHeal: true
+                  syncOptions:
+                    - CreateNamespace=true
+              APP
+              echo "--- Created Application: {{ $name }} ---"
+              {{- end }}
+              {{- end }}
+
+              echo "=== Bootstrap Complete ==="
+          restartPolicy: Never
+      backoffLimit: 3
+{{- end }}
