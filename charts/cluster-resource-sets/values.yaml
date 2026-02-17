@@ -1,25 +1,58 @@
 # =============================================================================
-# ClusterResourceSets — Values
+# Cluster Resource Sets — Values
+# =============================================================================
+# CRS bootstraps new clusters created by CAPG.
+# Strategy: CRS installs a lightweight Job that:
+#   1. Installs ArgoCD via Helm
+#   2. Creates App-of-Apps Applications that pull charts from helm-repo
 # =============================================================================
 
-# -- Strategy for applying resources
-# "ApplyOnce" = apply once when cluster is first detected (default)
-# "Reconcile" = re-apply when ConfigMap/Secret content changes
-strategy: Reconcile
+namespace: default
 
-# -- Management cluster CRS settings
+# -- Management Cluster Bootstrap
 managementCluster:
   enabled: true
-  # Label selector — must match labels on the CAPI Cluster CR
-  # Set these labels in your management-cluster.yaml (platform-config repo)
   matchLabels:
     cluster-type: management
 
-# -- Workload cluster CRS settings
+  # ArgoCD settings for management cluster
+  argocd:
+    version: "2.13.3"
+    helmChartVersion: "7.7.11"
+    server:
+      serviceType: LoadBalancer
+
+  # App-of-Apps: ArgoCD Applications to create on the management cluster
+  # Each entry becomes an ArgoCD Application that syncs from helm-repo
+  applications:
+    cert-manager:
+      enabled: true
+      path: charts/cert-manager
+      namespace: cert-manager
+    capi-operator:
+      enabled: true
+      path: charts/capi-operator
+      namespace: capi-operator-system
+    capg-provider:
+      enabled: true
+      path: charts/capg-provider
+      namespace: capg-system
+    # venafi:
+    #   enabled: true
+    #   path: charts/venafi
+    #   namespace: venafi
+
+  # Helm-repo URL (where the charts live)
+  helmRepoURL: https://github.com/mycicdmilan/helm-repo.git
+  helmRepoBranch: main
+
+# -- Workload Cluster Bootstrap (future use)
 workloadCluster:
-  enabled: true
+  enabled: false
   matchLabels:
     cluster-type: workload
-
-# -- Namespace for CRS resources
-namespace: default
+  applications:
+    cert-manager:
+      enabled: true
+      path: charts/cert-manager
+      namespace: cert-manager
