@@ -1,18 +1,11 @@
 {{/*
   ClusterResourceSet for Management Cluster Bootstrap.
-
-  When CAPG creates a new Management Cluster with the label
-  "cluster-type: management", this CRS automatically applies
-  the referenced ConfigMaps to that cluster.
-
-  The ConfigMaps contain the YAML manifests for:
-    - ArgoCD (watching cluster-config repo)
-    - CAPI Operator + Core/Bootstrap/ControlPlane providers
-    - CAPG Infrastructure Provider
-    - cert-manager
+  When CAPG creates a new cluster with label "cluster-type: management",
+  CRS automatically applies the bootstrap ConfigMap containing a Job
+  that installs ArgoCD + App-of-Apps.
 */}}
 {{- if .Values.managementCluster.enabled }}
-apiVersion: addons.cluster.x-k8s.io/v1beta2
+apiVersion: addons.cluster.x-k8s.io/v1beta1
 kind: ClusterResourceSet
 metadata:
   name: mgmt-cluster-bootstrap
@@ -21,19 +14,11 @@ metadata:
     app.kubernetes.io/managed-by: helm-repo
     app.kubernetes.io/component: crs
 spec:
-  strategy: {{ .Values.strategy }}
+  strategy: Reconcile
   clusterSelector:
     matchLabels:
       {{- toYaml .Values.managementCluster.matchLabels | nindent 6 }}
   resources:
-    # Each resource references a ConfigMap containing K8s manifests
-    # that will be applied to the new management cluster
     - kind: ConfigMap
-      name: mgmt-bootstrap-cert-manager
-    - kind: ConfigMap
-      name: mgmt-bootstrap-argocd
-    - kind: ConfigMap
-      name: mgmt-bootstrap-capi-operator
-    - kind: ConfigMap
-      name: mgmt-bootstrap-capg-provider
+      name: mgmt-bootstrap
 {{- end }}
