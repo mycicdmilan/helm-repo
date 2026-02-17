@@ -1,17 +1,11 @@
 {{/*
   ClusterResourceSet for Workload Cluster Bootstrap.
-
-  When CAPG creates a new Workload Cluster with the label
-  "cluster-type: workload", this CRS applies addons that do NOT
-  include CAPI/CAPG (those stay in the management cluster only).
-
-  Workload clusters get:
-    - ArgoCD (watching app repos for application deployment)
-    - cert-manager + Venafi (TLS for ingress)
-    - Ingress Controller
+  When CAPG creates a new cluster with label "cluster-type: workload",
+  CRS automatically applies the bootstrap ConfigMap.
+  Future use — disabled by default.
 */}}
 {{- if .Values.workloadCluster.enabled }}
-apiVersion: addons.cluster.x-k8s.io/v1beta2
+apiVersion: addons.cluster.x-k8s.io/v1beta1
 kind: ClusterResourceSet
 metadata:
   name: workload-cluster-bootstrap
@@ -20,16 +14,11 @@ metadata:
     app.kubernetes.io/managed-by: helm-repo
     app.kubernetes.io/component: crs
 spec:
-  strategy: {{ .Values.strategy }}
+  strategy: Reconcile
   clusterSelector:
     matchLabels:
       {{- toYaml .Values.workloadCluster.matchLabels | nindent 6 }}
   resources:
     - kind: ConfigMap
-      name: workload-bootstrap-cert-manager
-    - kind: ConfigMap
-      name: workload-bootstrap-argocd
-    - kind: ConfigMap
-      name: workload-bootstrap-venafi
-    # NOTE: No CAPI/CAPG — workload clusters are managed by the Mgmt cluster
+      name: workload-bootstrap
 {{- end }}
