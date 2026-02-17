@@ -1,7 +1,0 @@
-apiVersion: v2
-name: mgmt-app-of-apps
-description: |
-  Parent App-of-Apps for Management Cluster.
-  Creates child ArgoCD Applications for cert-manager, CAPI, CAPG, etc.
-version: 0.1.0
-type: application
