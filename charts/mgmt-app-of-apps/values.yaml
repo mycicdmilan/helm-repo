@@ -1,0 +1,46 @@
+# =============================================================================
+# Management Cluster — App-of-Apps
+# =============================================================================
+# Single parent Application that creates child Applications.
+# Each child syncs a chart from helm-repo independently.
+#
+# ArgoCD UI will show:
+#   mgmt-bootstrap (parent)
+#     ├── cert-manager
+#     ├── capi-operator
+#     └── capg-provider
+# =============================================================================
+
+helmRepo:
+  url: https://github.com/mycicdmilan/helm-repo.git
+  targetRevision: main   # Change to 'master' if that's your branch
+
+destination:
+  server: https://kubernetes.default.svc
+
+project: default
+
+applications:
+  cert-manager:
+    enabled: true
+    path: charts/cert-manager
+    namespace: cert-manager
+    syncWave: "-3"
+
+  capi-operator:
+    enabled: true
+    path: charts/capi-operator
+    namespace: capi-operator-system
+    syncWave: "-2"
+
+  capg-provider:
+    enabled: true
+    path: charts/capg-provider
+    namespace: capg-system
+    syncWave: "-1"
+
+  # venafi:
+  #   enabled: false
+  #   path: charts/venafi
+  #   namespace: venafi
+  #   syncWave: "0"
