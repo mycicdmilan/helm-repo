@@ -1,0 +1,133 @@
+{{/*
+  Bootstrap ConfigMap for Management Clusters.
+  Job installs ArgoCD + creates ONE App-of-Apps Application.
+  The App-of-Apps then creates child Applications from helm-repo.
+
+  Flow:
+    CRS → Job → ArgoCD + mgmt-bootstrap Application
+                  → cert-manager Application
+                  → capi-operator Application
+                  → capg-provider Application
+*/}}
+{{- if .Values.managementCluster.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mgmt-bootstrap
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: helm-repo
+    app.kubernetes.io/component: crs-bootstrap
+data:
+  bootstrap.yaml: |
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: argocd
+    ---
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: bootstrap-sa
+      namespace: argocd
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: bootstrap-admin
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: cluster-admin
+    subjects:
+      - kind: ServiceAccount
+        name: bootstrap-sa
+        namespace: argocd
+    ---
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: bootstrap-argocd
+      namespace: argocd
+    spec:
+      ttlSecondsAfterFinished: 600
+      template:
+        spec:
+          serviceAccountName: bootstrap-sa
+          containers:
+          - name: bootstrap
+            image: alpine/k8s:1.29.2
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "=== Starting Management Cluster Bootstrap ==="
+
+              # Step 1: Install ArgoCD via Helm
+              echo "--- Installing ArgoCD ---"
+              helm repo add argo https://argoproj.github.io/argo-helm
+              helm repo update
+              helm install argocd argo/argo-cd \
+                --namespace argocd \
+                --version {{ .Values.managementCluster.argocd.helmChartVersion }} \
+                --set server.service.type={{ .Values.managementCluster.argocd.server.serviceType }} \
+                --set configs.cm."admin\.enabled"="true" \
+                --wait --timeout 5m
+              echo "--- ArgoCD installed successfully ---"
+
+              # Step 2: Wait for ArgoCD CRDs
+              echo "--- Waiting for ArgoCD CRDs ---"
+              until kubectl get crd applications.argoproj.io >/dev/null 2>&1; do
+                echo "Waiting for Application CRD..."
+                sleep 5
+              done
+              sleep 10
+              echo "--- ArgoCD CRDs ready ---"
+
+              # Step 3: Register helm-repo in ArgoCD
+              echo "--- Registering helm-repo ---"
+              cat <<'REPO' | kubectl apply -f -
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: helm-repo
+                namespace: argocd
+                labels:
+                  argocd.argoproj.io/secret-type: repository
+              stringData:
+                type: git
+                url: {{ .Values.managementCluster.helmRepoURL }}
+              REPO
+              echo "--- helm-repo registered ---"
+
+              # Step 4: Create single App-of-Apps Application
+              echo "--- Creating App-of-Apps ---"
+              cat <<'APPOFAPPS' | kubectl apply -f -
+              apiVersion: argoproj.io/v1alpha1
+              kind: Application
+              metadata:
+                name: mgmt-bootstrap
+                namespace: argocd
+              spec:
+                project: default
+                source:
+                  repoURL: {{ .Values.managementCluster.helmRepoURL }}
+                  targetRevision: {{ .Values.managementCluster.helmRepoBranch }}
+                  path: charts/mgmt-app-of-apps
+                destination:
+                  server: https://kubernetes.default.svc
+                  namespace: argocd
+                syncPolicy:
+                  automated:
+                    prune: true
+                    selfHeal: true
+                  syncOptions:
+                    - CreateNamespace=true
+              APPOFAPPS
+              echo "--- App-of-Apps created ---"
+
+              echo "=== Bootstrap Complete ==="
+          restartPolicy: Never
+      backoffLimit: 3
+{{- end }}

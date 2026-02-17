@@ -1,0 +1,34 @@
+{{/*
+  Generates an ArgoCD Application for each enabled entry in .Values.applications.
+  Sync waves ensure correct install order:
+    cert-manager (-3) → capi-operator (-2) → capg-provider (-1)
+*/}}
+{{- range $name, $app := .Values.applications }}
+{{- if $app.enabled }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ $name }}
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "{{ $app.syncWave | default "0" }}"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: {{ $.Values.project }}
+  source:
+    repoURL: {{ $.Values.helmRepo.url }}
+    targetRevision: {{ $.Values.helmRepo.targetRevision }}
+    path: {{ $app.path }}
+  destination:
+    server: {{ $.Values.destination.server }}
+    namespace: {{ $app.namespace }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}
+{{- end }}
