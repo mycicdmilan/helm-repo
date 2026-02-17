@@ -1,5 +1,0 @@
-apiVersion: v2
-name: cluster-resource-sets
-description: CRS bootstrap for management and workload clusters
-version: 0.1.0
-type: application
