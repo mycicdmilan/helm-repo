@@ -1,33 +1,5 @@
-# =============================================================================
-# ClusterResourceSet (CRS) Bootstrap Chart (Custom Templates)
-# =============================================================================
-# CRS automatically applies resources to newly created clusters based on
-# label selectors. This chart defines CRS objects that bootstrap:
-#
-#   1. Management Clusters (label: cluster-type=management)
-#      → Installs ArgoCD, CAPI Operator, CAPG provider
-#
-#   2. Workload Clusters (label: cluster-type=workload)
-#      → Installs ArgoCD, cert-manager, Venafi, Ingress Controller
-#      → Does NOT install CAPI/CAPG (managed by Mgmt cluster)
-#
-# CRS uses ConfigMaps and Secrets to store the YAML manifests that get
-# applied to matching clusters. The ConfigMaps are in the configmaps/ directory.
-#
-# HOW CRS WORKS:
-#   1. CAPG creates a new cluster with labels (e.g., cluster-type: management)
-#   2. CRS controller in the Big Bang cluster detects the new cluster
-#   3. CRS matches the cluster labels against its clusterSelector
-#   4. CRS applies all referenced ConfigMaps/Secrets to the new cluster
-#   5. The new cluster gets ArgoCD, CAPI, CAPG installed automatically
-# =============================================================================
 apiVersion: v2
 name: cluster-resource-sets
-description: >
-  ClusterResourceSets for bootstrapping Management and Workload clusters
-  with platform components (ArgoCD, CAPI, CAPG, cert-manager, Venafi).
+description: CRS bootstrap for management and workload clusters
+version: 0.1.0
 type: application
-version: 1.0.0
-appVersion: "1.0.0"
-
-# No dependencies — this chart has its own templates
